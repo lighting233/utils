@@ -1,0 +1,30 @@
+{
+  "name": "@kiralight/utils",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "utils",
+    "axios"
+  ],
+  "author": "lighting233",
+  "license": "MIT",
+  "homepage": "https://github.com/lighting233",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lighting233/utils"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+
+  },
+  "peerDependencies": {
+    "axios": "^1.6.8"
+  }
+}
