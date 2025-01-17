@@ -10,7 +10,7 @@ import { ElMessage, ElLoading } from 'element-plus';
 let BASE_URL = ''
 if (import.meta.env.PROD) {
     // 生产环境
-    BASE_URL = 'http://152.136.185.210:4000'
+    BASE_URL = 'http://xxxxxxxx:4000'
 } else {
     // 开发环境
     //   BASE_URL = CONFIG_g.VUE_APP_CAN
@@ -29,11 +29,9 @@ const tkRequest = new StrongAxiosRequest({
   showLoading: false,
   interceptors: {
     requestSuccessFn: (config) => {
-      // 每一个请求都自动携带token
       const loginInfo = JSON.parse(storage.localStorageGet("loginInfo"));
       const token = loginInfo.authToken;
       if (config.headers && token) {
-        // 类型缩小
         config.headers.authtoken = token
       }
       return config

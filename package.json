@@ -21,9 +21,6 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "dependencies": {
-
-  },
   "peerDependencies": {
     "axios": "^1.6.8"
   }
