@@ -1,0 +1,277 @@
+<template>
+  <div class="content">
+    <div class="header">
+      <el-button v-if="isDelete && contentConfig?.header?.batchDelete" type="primary" @click="batchDeletePagList">
+        批量删除
+      </el-button>
+      <el-button v-if="isCreate" type="primary" @click="handleNewUserClick">
+        {{ contentConfig?.header?.btnTitle ?? "新建数据" }}
+      </el-button>
+    </div>
+    <div class="table">
+      <el-table ref="tableRef" :data="pageList" :row-key="rowKey" :default-sort="contentConfig.defaultSort"
+        @selection-change="handleSelectionChange" @sort-change="handleSortChange" border style="width: 100%"
+        v-bind="contentConfig.childrenTree">
+        <template v-for="item in contentConfig.propsList" :key="item.prop">
+          <template v-if="item.type === 'timer'">
+            <el-table-column align="center" v-bind="item">
+              <template #default="scope">
+                {{ scope.row[item.prop] }}
+              </template>
+            </el-table-column>
+          </template>
+          <template v-else-if="item.type === 'handler'">
+            <el-table-column align="center" v-bind="item">
+              <template #default="scope">
+                <el-button v-if="isUpdate" size="small" icon="Edit" type="primary" text
+                  @click="handleEditBtnClick(scope.row)">
+                  编辑
+                </el-button>
+                <el-button v-if="isDelete" size="small" icon="Delete" type="danger" text
+                  @click="handleDeleteBtnClick(scope.row[rowKey])">
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </template>
+          <template v-else-if="item.type === 'custom'">
+            <el-table-column align="center" v-bind="item">
+              <template #default="scope">
+                <slot :name="item.slotName" v-bind="scope" :prop="item.prop" hName="why"></slot>
+              </template>
+            </el-table-column>
+          </template>
+          <template v-else>
+            <el-table-column align="center" v-bind="item" />
+          </template>
+        </template>
+      </el-table>
+    </div>
+    <div class="pagination">
+      <el-pagination v-model:current-page="pageNO" v-model:page-size="pageCount" :page-sizes="[10, 20, 30]"
+        layout="total, sizes, prev, pager, next, jumper" :total="pageTotalCount" @size-change="handleSizeChange"
+        @current-change="handleCurrentChange" />
+    </div>
+  </div>
+</template>
+
+<script setup lang="js">
+import { ref } from "vue";
+import { storeToRefs } from "pinia";
+import { ElMessage, ElMessageBox } from "element-plus";
+
+const props = defineProps({
+  contentConfig: {
+    required: true,
+    type: Object,
+    default: () => ({
+      pageName: "",
+      rowKey: "",
+      header: {
+        title: "",
+        btnTitle: "",
+      },
+      defaultSort: null,
+      sortMap: {},
+      propsList: [],
+    }),
+  },
+  systemStore: {
+    required: true,
+    type: Object
+  },
+  usePermissions: {
+    type: Function
+  }
+});
+
+let cacheFormData = {};
+let sort = {};
+
+const formatSort = (prop, order) => {
+  const { sortMap } = props.contentConfig;
+  sort[sortMap.key] = prop;
+  sort.order = order ? sortMap[order] : null;
+}
+
+if (props.contentConfig?.defaultSort) {
+  const { prop, order } = props.contentConfig.defaultSort;
+  formatSort(prop, order);
+}
+//每一行的主键id
+const rowKey = computed(() => {
+  return props.contentConfig.rowKey ? props.contentConfig.rowKey : "oid";
+});
+
+// 定义事件
+const emit = defineEmits(["newClick", "editClick", "selectedList"]);
+
+// 0.获取是否有对应的增删改查的权限
+let isCreate = true;
+let isDelete = true;
+let isUpdate = true;
+let isQuery = true;
+if (typeof props.usePermissions === 'function') {
+  isCreate = props.usePermissions(`${props.contentConfig.pageName}:create`)
+  isDelete = props.usePermissions(`${props.contentConfig.pageName}:delete`)
+  isUpdate = props.usePermissions(`${props.contentConfig.pageName}:update`)
+  isQuery = props.usePermissions(`${props.contentConfig.pageName}:query`)
+}
+
+
+const tableRef = ref();
+const pageNO = ref(1);
+const pageCount = ref(10);
+const selectedLists = ref([]);
+
+// 1.发起action，请求uList的数据
+props.systemStore.$onAction(({ name, after }) => {
+  //TODO: 监听批量删的action
+  after(() => {
+    if (
+      name === "deletePageByIdAction" ||
+      name === "editPageDataAction" ||
+      name === "newPageDataAction" ||
+      name === "batchDeletePagList"
+    ) {
+      pageNO.value = 1;
+    }
+  });
+});
+
+fetchPageListData();
+
+// 2.获取usersList数据,进行展示
+const { pageList, pageTotalCount } = storeToRefs(props.systemStore);
+
+// 3.页码相关的逻辑
+function handleSizeChange() {
+  fetchPageListData();
+}
+function handleCurrentChange() {
+  fetchPageListData();
+}
+
+// 4.定义函数, 用于发送网络请求
+function fetchPageListData(formData) {
+  if (!isQuery) return;
+
+  // 1.分页
+  const pageInfo = { pageCount: pageCount.value, pageNO: pageNO.value };
+  if (formData && typeof formData === "object") {
+    cacheFormData = formData;
+  }
+  // 2.发起网络请求
+  const queryInfo = { ...pageInfo, ...sort, ...cacheFormData };
+  props.systemStore.postPageListAction(props.contentConfig.pageName, queryInfo);
+}
+
+// 5.删除/新建/编辑的操作
+function handleDeleteBtnClick(id) {
+  props.systemStore.deletePageByIdAction(props.contentConfig.pageName, id);
+}
+function handleNewUserClick() {
+  emit("newClick");
+}
+function handleEditBtnClick(itemData) {
+  emit("editClick", itemData);
+}
+
+// 批量选择操作
+function handleSelectionChange(rows = []) {
+  selectedLists.value = rows;
+  emit("selectedList", rows);
+}
+
+function batchDeletePagList() {
+  if (selectedLists.value.length === 0) {
+    ElMessage({
+      message: "请选择要处理的数据",
+      type: "warning",
+      duration: 3 * 1000,
+    });
+    return;
+  }
+  open();
+  // props.systemStore.batchDeletePagList(props.contentConfig.pageName, selectedLists.value)
+}
+
+const open = () => {
+  ElMessageBox({
+    title: "提示",
+    message: `确定进行${selectedLists.value.length > 1 ? "批量" : ""}删除吗?`,
+    showCancelButton: true,
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    beforeClose: (action, instance, done) => {
+      if (action === "confirm") {
+        instance.confirmButtonLoading = true;
+        instance.confirmButtonText = "处理中...";
+        const callback = () => {
+          selectedLists.value = [];
+          tableRef.value.clearSelection();
+          done();
+          setTimeout(() => {
+            instance.confirmButtonLoading = false;
+          }, 300);
+        };
+        callback();
+        // props.systemStore.batchDeletePagList(props.contentConfig.pageName, selectedLists.value, callback)
+      } else {
+        done();
+      }
+    },
+  }).then((action) => {
+    ElMessage({
+      type: "success",
+      message: "删除成功！",
+    });
+  });
+};
+
+// 排序操作
+function handleSortChange(data) {
+  const { prop, order } = data;
+  formatSort(prop, order);
+  fetchPageListData();
+}
+
+// 6.监听systemStore中的actions被执行
+defineExpose({ fetchPageListData, batchDeletePagList });
+</script>
+
+<style lang="scss" scoped>
+.content {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #fff;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 10px;
+
+  .title {
+    font-size: 22px;
+  }
+}
+
+.table {
+  :deep(.el-table__cell) {
+    padding: 12px 0;
+  }
+
+  .el-button {
+    margin-left: 0;
+    padding: 5px 8px;
+  }
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+</style>
