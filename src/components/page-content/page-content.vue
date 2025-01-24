@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="js">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { storeToRefs } from "pinia";
 import { ElMessage, ElMessageBox } from "element-plus";
 
@@ -74,6 +74,7 @@ const props = defineProps({
       defaultSort: null,
       sortMap: {},
       propsList: [],
+      searchDefaultValues: {}
     }),
   },
   systemStore: {
@@ -84,8 +85,10 @@ const props = defineProps({
     type: Function
   }
 });
-
-let cacheFormData = {};
+//
+let cacheFormData = {
+  ...props.contentConfig.searchDefaultValues
+};
 let sort = {};
 
 const formatSort = (prop, order) => {
@@ -124,7 +127,7 @@ const pageNO = ref(1);
 const pageCount = ref(10);
 const selectedLists = ref([]);
 
-// 1.发起action，请求uList的数据
+// 1.监听systemStore中的actions被执行
 props.systemStore.$onAction(({ name, after }) => {
   //TODO: 监听批量删的action
   after(() => {
@@ -236,7 +239,7 @@ function handleSortChange(data) {
   fetchPageListData();
 }
 
-// 6.监听systemStore中的actions被执行
+// 6.暴露给外部执行的方法
 defineExpose({ fetchPageListData, batchDeletePagList });
 </script>
 

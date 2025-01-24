@@ -5,7 +5,9 @@ import {
     PageModal,
     usePageContent,
     usePageModal,
-    setupUseLoginStoreForPermissions
+    setupUseLoginStoreForPermissions,
+    PageContentColada,
+    PageModalColada
 } from "./src/components";
 
 export {
@@ -15,5 +17,7 @@ export {
     PageModal,
     usePageContent,
     usePageModal,
-    setupUseLoginStoreForPermissions
+    setupUseLoginStoreForPermissions,
+    PageContentColada,
+    PageModalColada
 };

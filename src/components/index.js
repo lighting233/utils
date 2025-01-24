@@ -4,6 +4,8 @@ import PageModal from './page-modal/page-modal.vue';
 import usePageContent from './hooks/usePageContent';
 import usePageModal from './hooks/usePageModal';
 import setupUseLoginStoreForPermissions from './hooks/usePermissions';
+import PageContentColada from './page-content-colada/page-content-colada.vue';
+import PageModalColada from './page-modal-colada/page-modal-colada.vue';
 
 export {
     PageSearch,
@@ -11,5 +13,7 @@ export {
     PageModal,
     usePageContent,
     usePageModal,
-    setupUseLoginStoreForPermissions
+    setupUseLoginStoreForPermissions,
+    PageContentColada,
+    PageModalColada
 }
